@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Чат на WebSocket</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        margin: 0;
+        padding: 10px;
+      }
+      #chat {
+        flex: 1;
+        border: 1px solid #ddd;
+        padding: 10px;
+        overflow-y: auto;
+        background-color: #f9f9f9;
+      }
+      #messageInput {
+        padding: 10px;
+        width: 85%;
+      }
+      #sendButton {
+        padding: 10px;
+        width: 12%;
+        margin-left: 5px;
+        cursor: pointer;
+      }
+      .message {
+        margin: 5px 0;
+      }
+      .my-message {
+        text-align: right;
+        color: blue;
+      }
+      .other-message {
+        text-align: left;
+        color: black;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="chat"></div>
+    <input id="messageInput" type="text" placeholder="Введите ваше сообщение" />
+    <button id="sendButton" disabled>Отправить</button>
+
+    <script>
+      const chat = document.getElementById("chat");
+      const messageInput = document.getElementById("messageInput");
+      const sendButton = document.getElementById("sendButton");
+      const socket = new WebSocket("ws://localhost:8080");
+
+      socket.addEventListener("open", () => {
+        console.log("Подключено к серверу");
+        sendButton.disabled = false;
+      });
+
+      socket.addEventListener("message", (event) => {
+        const message = document.createElement("div");
+        message.textContent = event.data;
+        message.className = "message other-message";
+        chat.appendChild(message);
+        chat.scrollTop = chat.scrollHeight;
+      });
+
+      sendButton.addEventListener("click", sendMessage);
+      messageInput.addEventListener("keypress", (event) => {
+        if (event.key === "Enter") {
+          sendMessage();
+        }
+      });
+
+      function sendMessage() {
+        const message = messageInput.value.trim();
+
+        if (message) {
+          socket.send(message);
+          const myMessage = document.createElement("div");
+          myMessage.textContent = `Я: ${message}`;
+          myMessage.className = "message my-message";
+          chat.appendChild(myMessage);
+          chat.scrollTop = chat.scrollHeight;
+          messageInput.value = "";
+          messageInput.focus();
+        }
+      }
+
+      socket.addEventListener("error", (event) => {
+        console.error("Ошибка WebSocket:", event);
+        alert(
+          "Произошла ошибка с соединением. Попробуйте перезагрузить страницу."
+        );
+      });
+
+      socket.addEventListener("close", (event) => {
+        console.log("Соединение закрыто", event);
+        sendButton.disabled = true;
+        alert("Соединение с сервером потеряно!");
+      });
+
+      messageInput.addEventListener("input", () => {
+        sendButton.disabled = messageInput.value.trim() === "";
+      });
+    </script>
+  </body>
+</html>
